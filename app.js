@@ -38,7 +38,7 @@ module.exports = (io) => {
     res.send(`
       <html>
         <body>
-          <h1>IQ-Night Backend Side</h1>
+          <h1>IQ-Night Backend</h1>
         </body>
       </html>
     `);
