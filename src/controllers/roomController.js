@@ -37,7 +37,7 @@ exports.getRooms = catchAsync(async (req, res, next) => {
 
   // Fetch founder details in a single query
   const founders = await User.find({ _id: { $in: founderIds } })
-    .select("name cover _id totalGames rating")
+    .select("name cover _id totalGames rating admin")
     .lean()
     .then((data) =>
       data.reduce((acc, founder) => {
@@ -102,7 +102,7 @@ exports.getRoom = catchAsync(async (req, res, next) => {
 
   // Fetch founder details
   const founder = await User.findById(room.admin.founder)
-    .select("name cover _id")
+    .select("name cover _id admin")
     .lean();
 
   // Attach founder details to the room
@@ -209,7 +209,7 @@ exports.createRoom = catchAsync(async (req, res, next) => {
 
   // Fetch founder details
   const founder = await User.find({ _id: { $in: newRoom.admin.founder } })
-    .select("name cover _id")
+    .select("name cover _id admin")
     .lean();
 
   const roomObj = {
@@ -985,7 +985,7 @@ exports.getLogs = catchAsync(async (req, res, next) => {
 
   // Find the room by ID and select only the "games" field
   const room = await Room.findById(req.params.id).lean();
-  console.log(room);
+
   if (!room) {
     return next(new AppError("Room not found", 404));
   }
@@ -995,7 +995,7 @@ exports.getLogs = catchAsync(async (req, res, next) => {
     room &&
     room?.games
       .sort((a, b) => b.number - a.number) // Sorting in descending order
-      .slice((page - 1) * 15, page * 15); // Paginate the results
+      .slice((page - 1) * 20, page * 20); // Paginate the results
 
   res.status(200).json({
     status: "success",
@@ -1024,5 +1024,57 @@ exports.getPeriods = catchAsync(async (req, res, next) => {
     status: "success",
     totalLogs: room.games.length,
     data: period === "Nights" ? foundGame.nights : foundGame.days,
+  });
+});
+// Add ban to player
+exports.addBan = catchAsync(async (req, res, next) => {
+  // Helper function to check if a ban has expired
+  const checkBanExpired = (ban) => {
+    if (!ban || !ban.createdAt) {
+      return true; // Assume expired if ban is null or missing createdAt
+    }
+
+    const currentTime = new Date();
+    const expirationTime =
+      new Date(ban.createdAt).getTime() + ban.totalHours * 60 * 60 * 1000;
+
+    return expirationTime < currentTime.getTime();
+  };
+
+  // Find the room by ID and select only the "blackList" field
+  const room = await Room.findById(req.params.id, "blackList").lean();
+
+  if (!room) {
+    return next(new AppError("Room not found", 404));
+  }
+
+  // Initialize blackList if it doesn't exist
+  if (!room.blackList) {
+    room.blackList = [];
+  }
+
+  // Filter out expired bans
+  const validBans = room.blackList.filter((ban) => {
+    return !checkBanExpired(ban); // Keep only non-expired bans
+  });
+
+  // Add the new ban to the valid bans
+  const newBan = {
+    user: req.body.user,
+    createdAt: new Date(),
+    totalHours: req.body.totalHours,
+  };
+
+  validBans.push(newBan);
+
+  // Update the room's blackList in a single call
+  await Room.findByIdAndUpdate(
+    req.params.id,
+    { blackList: validBans },
+    { new: true }
+  );
+
+  res.status(200).json({
+    status: "success",
   });
 });

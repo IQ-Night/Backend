@@ -63,6 +63,7 @@ module.exports = (io) => {
         userId,
         userName: userData.name,
         userCover: userData.cover,
+        admin: userData?.admin,
         type,
         status: "online",
       });
@@ -160,11 +161,8 @@ module.exports = (io) => {
             specificSocket.leave(roomId);
           });
           socket.leave(roomId);
-        } else if (
-          room.admin.founder?._id !== userId &&
-          room.admin.founder !== userId
-        ) {
-          if (game?.gameLevel?.status === "In play") {
+        } else {
+          if (game?.gameLevel?.status === "In Play") {
             let gameOver;
             const aliveMafias = activePlayers.filter(
               (player) => player.role.value.includes("mafia") && !player?.death
@@ -283,6 +281,7 @@ module.exports = (io) => {
                     userName: u.userName,
                     userCover: u.userCover,
                     addedTime: u.addedTime,
+                    admin: u?.admin,
                     type: u.type,
                   };
                 } else {
@@ -380,17 +379,19 @@ module.exports = (io) => {
                 message: {
                   type: "User Left Game",
 
-                  user: game.players.find((p) => p.userId === userId)
-                    .playerNumber
+                  user: usersBeforeLeave.find((p) => p.userId === userId)
+                    ?.playerNumber
                     ? "N: " +
-                      game.players.find((p) => p.userId === userId).playerNumber
-                    : game.players.find((p) => p.userId === userId).userName,
+                      usersBeforeLeave?.find((p) => p.userId === userId)
+                        ?.playerNumber
+                    : usersBeforeLeave?.find((p) => p.userId === userId)
+                        ?.userName,
                 },
               });
               io.emit("updateRoomInfo", {
                 usersInRoom,
                 roomId,
-                gameLevel: { status: "In play" },
+                gameLevel: { status: "In Play" },
               });
             }
           } else {
@@ -406,6 +407,7 @@ module.exports = (io) => {
                   addedTime: u.addedTime,
                   type: u.type,
                   readyToStart: u.readyToStart,
+                  admin: u.admin,
                 };
               } else {
                 return u;
@@ -612,7 +614,7 @@ module.exports = (io) => {
           id: uuidv4(),
           number: currentGame ? room.games.length + 1 : 1,
           players: players,
-          gameLevel: { status: "In play", level: "startPlay" },
+          gameLevel: { status: "In Play", level: "startPlay" },
           createdAt: new Date(),
         };
         room.games.push(newGame);
@@ -630,15 +632,20 @@ module.exports = (io) => {
         io.to(roomId).emit("gameStarted", {
           players,
         });
+
+        io.emit("updateRoomInfo", {
+          usersInRoom,
+          roomId,
+          gameLevel: newGame?.gameLevel,
+        });
       } else {
         console.log(`Room with ID ${roomId} not found`);
+        io.emit("updateRoomInfo", {
+          usersInRoom,
+          roomId,
+          gameLevel: room?.games[room?.games?.length - 1]?.gameLevel,
+        });
       }
-
-      io.emit("updateRoomInfo", {
-        usersInRoom,
-        roomId,
-        gameLevel: room?.games[room?.games?.length - 1]?.gameLevel,
-      });
     });
 
     /**
@@ -1357,8 +1364,33 @@ module.exports = (io) => {
           nextNightNumber,
           after: after === "Day" ? "After Day" : "After Night",
         });
+
+        io.emit("updateRoomInfo", {
+          roomId,
+          gameLevel: currentGame?.gameLevel,
+        });
       }
     );
+
+    /**
+     * Rerender auth user to get updated data
+     */
+    socket.on("rerenderAuthUser", async ({ userId }) => {
+      try {
+        // Fetch user by userId
+        let user = getUser(userId);
+
+        // Ensure the user exists and has a socketId
+        if (!user || !user.socketId) {
+          return;
+        }
+
+        // Send notification to the specific user's socket
+        io.to(user.socketId).emit("rerenderedAuthUser");
+      } catch (error) {
+        console.error(`Error sending notification to user ${userId}:`, error);
+      }
+    });
 
     /**
      *
@@ -1366,7 +1398,6 @@ module.exports = (io) => {
      *
      */
     socket.on("notifications", async ({ userId }) => {
-      console.log(userId);
       try {
         // Fetch user by userId
         let user = getUser(userId);

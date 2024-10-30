@@ -11,8 +11,11 @@ const userSchema = new mongoose.Schema(
       maxlength: [100, "Name cannot be more than 100 characters"],
     },
     admin: {
-      type: Boolean,
-      default: false,
+      type: Object,
+      default: { active: false, role: "" },
+    },
+    status: {
+      type: Object,
     },
     email: {
       type: String,

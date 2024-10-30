@@ -38,12 +38,17 @@ router
 router
   .route("/users/:id/clearNotifications")
   .patch(notifications.clearNotifications);
+// block user
+router.route("/users/:id/block").patch(users.blockUser);
 
 // payments
 router.route("/users/:id/buyCoins").patch(paymentController.buyCoins);
+
 router
   .route("/users/:id/invoices")
   .get(paymentController.getInvoices)
   .delete(paymentController.clearInvoices);
+
+router.route("/admin/management").get(users.getManagement);
 
 module.exports = router;

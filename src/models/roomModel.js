@@ -62,6 +62,9 @@ const roomSchema = new mongoose.Schema(
     rules: {
       type: Array,
     },
+    blackList: {
+      type: Array,
+    },
   },
   { timestamps: true }
 );

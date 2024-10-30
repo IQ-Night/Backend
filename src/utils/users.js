@@ -26,6 +26,7 @@ const joinRoom = ({
   userCover,
   type,
   status,
+  admin,
 }) => {
   console.log("Updating or adding user");
 
@@ -46,6 +47,7 @@ const joinRoom = ({
         : new Date(),
       type,
       status,
+      admin,
     };
   } else {
     // User doesn't exist, add a new user
@@ -59,6 +61,7 @@ const joinRoom = ({
       addedTime: new Date(),
       type,
       status,
+      admin,
     });
   }
 };

@@ -26,5 +26,6 @@ router.route("/rooms/:id/afterLeaveData").patch(rooms.afterLeaveData);
 router.route("/rooms/:id/addRating").patch(rooms.addRating);
 router.route("/rooms/:id/logs").get(rooms.getLogs);
 router.route("/rooms/:id/periodData").get(rooms.getPeriods);
+router.route("/rooms/:id/blackList").patch(rooms.addBan);
 
 module.exports = router;

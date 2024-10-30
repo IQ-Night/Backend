@@ -33,8 +33,6 @@ module.exports = (io) => {
 
       const players = getRoomUsers(roomId);
 
-      console.log(players);
-
       if (timeLeft <= 0) {
         clearInterval(timers[roomId]);
         delete timers[roomId];

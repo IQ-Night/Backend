@@ -58,7 +58,7 @@ exports.getUsers = catchAsync(async (req, res, next) => {
     },
   });
 });
-// Get Users
+// Get User
 exports.getUser = catchAsync(async (req, res, next) => {
   // Fetch users from the database, selecting only the name, cover, and notifications fields, sorted by creation date
   const user = await User.findById(req.params.id).select(
@@ -178,5 +178,42 @@ exports.deleteUser = catchAsync(async (req, res, next) => {
   res.status(204).json({
     status: "success",
     data: null,
+  });
+});
+
+// Get Management
+exports.getManagement = catchAsync(async (req, res, next) => {
+  // Fetch users from the database, selecting only the name, cover, and notifications fields, sorted by creation date
+  const management = await User.find({ "admin.active": true }) // Corrected field access
+    .select("name cover rating admin");
+
+  // Respond with the fetched users
+  res.status(200).json({
+    status: "success",
+    data: {
+      management, // Pluralized to reflect that it's an array of users
+    },
+  });
+});
+// Block User
+exports.blockUser = catchAsync(async (req, res, next) => {
+  // Update the user's status in the database
+  const user = await User.findByIdAndUpdate(
+    req.params.id,
+    { status: req.body }, // Update status with the data from the request body
+    { new: true, runValidators: true } // Options to return the updated document and run validators
+  );
+
+  // Check if the user was found and updated
+  if (!user) {
+    return next(new AppError("User not found", 404));
+  }
+
+  // Respond with success
+  res.status(200).json({
+    status: "success",
+    data: {
+      user, // Include the updated user data in the response if needed
+    },
   });
 });
